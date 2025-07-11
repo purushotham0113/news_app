@@ -1,9 +1,9 @@
 import React from 'react'
-
 export default function App() {
   return (
-    <div>
-      <h2>hello world</h2>
-    </div>
+    <>
+      <h2>this is head</h2>
+      {/* <NavBar /> */}
+    </>
   )
 }

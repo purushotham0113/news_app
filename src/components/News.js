@@ -6,13 +6,13 @@ import PropTypes from 'prop-types';
 export default class News extends Component {
     static defaultProps = {
         country: 'us',
-        pagesize: 6,
+        pageSize: 6,
         category: 'general',
     };
 
     static propTypes = {
         country: PropTypes.string,
-        pagesize: PropTypes.number,
+        pageSize: PropTypes.number,
         category: PropTypes.string,
     };
 
@@ -21,17 +21,28 @@ export default class News extends Component {
         this.state = {
             page: 1,
             articles: [],
-            loading: false,
             total: 0,
+            loading: false,
+            error: null,
         };
     }
 
-    async fetchNews(page) {
-        this.setState({ loading: true });
-        const url = `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=1d23e62f0e49466baf6b108d7723c496&pageSize=${this.props.pagesize}&page=${page}`;
+    componentDidMount() {
+        this.fetchNews(this.state.page);
+    }
+
+    fetchNews = async (page) => {
+        this.setState({ loading: true, error: null });
+
         try {
-            const res = await fetch(url);
+            const res = await fetch(
+                `http://localhost:5000/news?category=${this.props.category}&page=${page}`
+            );
+
+            if (!res.ok) throw new Error('API response not OK');
+
             const data = await res.json();
+
             this.setState({
                 articles: data.articles || [],
                 total: data.totalResults || 0,
@@ -39,14 +50,10 @@ export default class News extends Component {
                 page: page,
             });
         } catch (err) {
-            console.error('Failed to fetch news:', err);
-            this.setState({ loading: false });
+            console.error('Error fetching news:', err);
+            this.setState({ loading: false, error: 'Failed to load news 😞' });
         }
-    }
-
-    componentDidMount() {
-        this.fetchNews(this.state.page);
-    }
+    };
 
     handlePrev = () => {
         if (this.state.page > 1) {
@@ -55,20 +62,35 @@ export default class News extends Component {
     };
 
     handleNext = () => {
-        if (this.state.page < Math.ceil(this.state.total / this.props.pagesize)) {
+        if (this.state.page < Math.ceil(this.state.total / this.props.pageSize)) {
             this.fetchNews(this.state.page + 1);
         }
     };
 
     render() {
+        const { articles, loading, page, total, error } = this.state;
+        const { pageSize } = this.props;
+
         return (
-            <div className="container my-3">
-                <h2 className="text-center">Today’s Top Headlines</h2>
-                {this.state.loading && <Spinner />}
+            <div className="container my-4">
+                <h2 className="text-center mb-4">
+                    📰 Todays Top Headlines
+                </h2>
+
+                {loading && <Spinner />}
+
+                {!loading && error && (
+                    <div className="alert alert-danger text-center">{error}</div>
+                )}
+
+                {!loading && !error && articles.length === 0 && (
+                    <div className="alert alert-warning text-center">No news found.</div>
+                )}
+
                 <div className="row">
-                    {!this.state.loading &&
-                        this.state.articles.map((item, ind) => (
-                            <div className="col-md-4" key={ind}>
+                    {!loading &&
+                        articles.map((item, index) => (
+                            <div className="col-md-4 mb-4" key={index}>
                                 <NewsItem
                                     title={item.title}
                                     description={item.description}
@@ -78,25 +100,26 @@ export default class News extends Component {
                             </div>
                         ))}
                 </div>
-                <div className="d-flex justify-content-between my-3">
-                    <button
-                        disabled={this.state.page <= 1}
-                        onClick={this.handlePrev}
-                        className="btn btn-dark"
-                    >
-                        &larr; Prev
-                    </button>
-                    <button
-                        disabled={
-                            this.state.page >=
-                            Math.ceil(this.state.total / this.props.pagesize)
-                        }
-                        onClick={this.handleNext}
-                        className="btn btn-dark"
-                    >
-                        Next &rarr;
-                    </button>
-                </div>
+
+                {!loading && !error && (
+                    <div className="d-flex justify-content-between mt-4">
+                        <button
+                            className="btn btn-dark"
+                            disabled={page <= 1}
+                            onClick={this.handlePrev}
+                        >
+                            &larr; Prev
+                        </button>
+
+                        <button
+                            className="btn btn-dark"
+                            disabled={page >= Math.ceil(total / pageSize)}
+                            onClick={this.handleNext}
+                        >
+                            Next &rarr;
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }

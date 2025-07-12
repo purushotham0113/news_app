@@ -36,7 +36,7 @@ export default class News extends Component {
 
         try {
             const res = await fetch(
-                `http://localhost:5000/news?category=${this.props.category}&page=${page}`
+                `https://news-app-backend-5mqf.onrender.com/news?category=${this.props.category}&page=${page}`
             );
 
             if (!res.ok) throw new Error('API response not OK');
